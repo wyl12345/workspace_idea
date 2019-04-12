@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8"/>
+<title>Insert title here</title>
+<!--<script th:src="@{../js/jquery.min.js}"></script>-->
+    <!-- 引入jquery的js -->
+    <script type="text/javascript" src="../js/jquery.min.js"></script>
+    <!-- 引入bootstrap的css、js -->
+    <link type="text/css" rel="stylesheet" href="../bootstrap3/css/bootstrap.css"/>
+    <script type="text/javascript" src="../bootstrap3/js/bootstrap.js"></script>
+    <!-- 引入bootstrap table的css、js -->
+    <link type="text/css" rel="stylesheet" href="../js/bootstrap-table/bootstrap-table.css"/>
+    <script type="text/javascript" src="../js/bootstrap-table/bootstrap-table.js"></script>
+    <script type="text/javascript" src="../js/bootstrap-table/locale/bootstrap-table-zh-CN.js"></script>
+    <!-- 引入bootstrap bootbox的css、js -->
+    <script type="text/javascript" src="../js/bootstrap-bootbox/bootbox.js"></script>
+    <!-- 引入bootstrap datetime的css、js -->
+    <link type="text/css" rel="stylesheet" href="../js/bootstrap-datetimepicker/css/bootstrap-datetimepicker.css"/>
+    <script type="text/javascript" src="../js/bootstrap-datetimepicker/js/bootstrap-datetimepicker.js"></script>
+    <script type="text/javascript" src="../js/bootstrap-datetimepicker/js/locales/bootstrap-datetimepicker.zh-CN.js"></script>
+
+
+</head>
+<body>
+<div id="toolbar">
+    <form class="form-inline">
+        <div class="form-group">
+            <label for="username">用户名</label>
+            <input type="text" class="form-control" id="username" placeholder="请输入用户名">
+        </div>
+        <button type="button" class="btn btn-primary glyphicon glyphicon-search" onclick="searchUser()">搜索</button>
+        <button type="button" class="btn btn-primary"  onclick="deleteUser()">批量删除</button>
+        <button type="button" class="btn btn-primary" onclick="openAdd()">新增</button>
+    </form>
+</div>
+<table class="table" id="myTable"></table>
+
+</body>
+<script type="text/javascript">
+
+    $(function(){
+        initUserTable();//初始化用户表格数据
+
+    })
+
+    function searchUser(){
+        $('#myTable').bootstrapTable('refresh');
+    }
+
+    function initUserTable(){
+        $('#myTable').bootstrapTable({
+            toolbar:'#toolbar',
+            url:"./findBookList",
+            //pagination:true, //是否展示分页
+            //pageList:[1,5,10, 20, 50],//分页组件
+            //pageNumber:1,
+            //pageSize:1,//默认每页条数
+           // sidePagination:'server',//分页方式：client客户端分页，server服务端分页
+            striped:true,//显示条纹状表格
+            queryParams:function(){
+                return {
+                  //  page:this.pageNumber,
+                    //rows:this.pageSize,
+                   // name:$("#username").val(),
+                }
+            },
+            columns:[
+                {field:'123',checkbox:true},
+                {field:'id',title:'id',width:100},
+                {field:'bookName',title:'名称',width:100},
+                {field:'bookDate',title:'日期',width:100},
+                {field:'bookPrice',title:'价格',width:100},
+                {field:'typeId',title:'类型'},
+                {field:'abc',title:'操作',formatter:function(value,row,index){
+                        var values="<a href='javascript:deleteBook("+row.id+");'>删除</a> <a href='javascript:updateUser("+row.id+");'>修改</a>";
+
+                        return values;
+                    }},
+            ]
+        })
+    }
+   var res;
+    function createAddContent(url){
+        $.ajax({
+            url:url,
+            async:false,
+            success:function(data){
+                res = data;
+            }
+        });
+        return res;
+    }
+
+    //修改回显
+    function updateUser(id){
+        //打开修改页面
+        bootbox.dialog({
+            title:'修改用户',
+            message: createAddContent("./toUpdate"),
+            closeButton: true,//是否显示关闭按钮
+            buttons : {
+                "success" : {
+                    "label" : "<i class='icon-ok'></i> 保存",
+                    "className" : "btn-sm btn-success",
+                    "callback" : function() {
+                        $.ajax({
+                            url:'./saveUser',
+                            type:'post',
+                            data:$("#myForm").serialize(),
+                            success:function(){
+                                //$('#myTable').bootstrapTable('refresh');
+                                //刷新表格
+                                searchUser();
+                            }
+                        });
+                    }
+                },
+                "cancel" : {
+                    "label" : "<i class='icon-info'></i> 取消",
+                    "className" : "btn-sm btn-danger",
+                    "callback" : function() {
+
+                    }
+                }
+            }
+
+        });
+
+//回显
+        $.ajax({
+            url:"./findUserById",
+            type:"post",
+            data:{id:id},
+            success:function(data){
+                initTypeSelect();
+                $("#id").val(data.id);
+                $("#bookName").val(data.bookName);
+                $("#bookPrice").val(data.bookPrice);
+                $("#typeId").val(data.typeId);
+            }
+        })
+    }
+    //打开新增弹框
+    function openAdd(){
+        bootbox.dialog({
+            title:'添加用户',
+            message:createAddContent("./toAdd"),
+            closeButton: true,
+            buttons : {
+                "success" : {
+                    "label" : "<i class='icon-ok'></i> 保存",
+                    "className" : "btn-sm btn-success",
+                    "callback" : function() {
+                        $.ajax({
+                            url:'./addBook',
+                            type:'post',
+                            data:$("#myForm").serialize(),
+                            dataType:'json',
+                            success:function(data){
+                                $('#myTable').bootstrapTable('refresh');
+                                //刷新表格
+                                searchUser();
+                            }
+                        });
+                    }
+                },
+                "cancel" : {
+                    "label" : "<i class='icon-info'></i> 取消",
+                    "className" : "btn-sm btn-danger",
+                    "callback" : function() {
+
+                    }
+                }
+            }
+        })
+
+    }
+    function deleteBook(id) {
+        bootbox.confirm({
+            size: 'small',
+            title: '提示',
+            message: '您确定要删除吗？',
+            callback: function (result) {
+                if (result) {
+                    $.ajax({
+                        url: './delUser',
+                        type: 'post',
+                        data: {id: id},
+                        dataType: 'json',
+                        success: function (data) {
+                            if (data) {
+                                initBookTable()
+                            }
+                        }, error: function (data) {
+
+                        }
+                    })
+                }
+            }
+        })
+    }
+</script>
+</html>
